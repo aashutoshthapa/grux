@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3, Users, User, LogOut, Clock, Activity, FileText, DollarSign, PlusCircle, CreditCard, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import ProfileSettings from '@/components/admin/ProfileSettings';
 import ProfileModal from '@/components/admin/ProfileModal';
 
 export default function Dashboard() {
@@ -295,7 +294,9 @@ export default function Dashboard() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
-              <img src="/logo.jpg" alt="G-Rux Fitness" className="h-10 w-auto" />
+              <span className="text-xl font-bold">
+                GymStrive<span className="text-gym-blue">Hub</span>
+              </span>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -320,9 +321,6 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 gap-8">
-          {/* Profile Settings Section */}
-          <ProfileSettings />
-
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-xl shadow-sm p-6">
