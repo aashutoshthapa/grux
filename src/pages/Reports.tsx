@@ -18,6 +18,7 @@ export default function Reports() {
   const reportRef = useRef(null);
 
   useEffect(() => {
+    document.title = "Reports | G-Rux Fitness";
     fetchReportData();
   }, [reportPeriod]);
 

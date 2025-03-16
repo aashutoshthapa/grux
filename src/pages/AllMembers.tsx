@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, LogOut, Search, Filter, Trash, Edit, Eye, User } from 'lucide-react';
@@ -35,6 +34,7 @@ export default function AllMembers() {
   const [adminUsers, setAdminUsers] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    document.title = "Members | G-Rux Fitness";
     fetchMembers();
     fetchAdminUsers();
   }, []);

@@ -19,6 +19,10 @@ const Index = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    document.title = "G-Rux Fitness";
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,

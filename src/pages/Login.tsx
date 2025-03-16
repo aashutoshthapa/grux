@@ -23,6 +23,10 @@ export default function Login() {
     checkLoggedIn();
   }, [navigate]);
 
+  useEffect(() => {
+    document.title = "Admin Login | G-Rux Fitness";
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

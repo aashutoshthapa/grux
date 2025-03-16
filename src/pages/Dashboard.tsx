@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
+    document.title = "Admin Panel | G-Rux Fitness";
     checkAuth();
     fetchAdminUsers();
     updateExpiredMemberships().then(() => {
@@ -314,7 +315,7 @@ export default function Dashboard() {
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <span className="text-xl font-bold">
-                GymStrive<span className="text-gym-blue">Hub</span>
+                Admin Panel
               </span>
             </div>
             
