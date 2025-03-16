@@ -1,33 +1,35 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BarChart3, Users, User, LogOut, Clock, Activity, FileText, DollarSign, PlusCircle } from 'lucide-react';
+import { BarChart3, Users, User, LogOut, Clock, Activity, FileText, DollarSign, PlusCircle, CreditCard, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import ProfileSettings from '@/components/admin/ProfileSettings';
+import ProfileModal from '@/components/admin/ProfileModal';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const [memberCount, setMemberCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [expiredCount, setExpiredCount] = useState(0);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [adminName, setAdminName] = useState('Admin');
   const [adminEmail, setAdminEmail] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [expiringMemberships, setExpiringMemberships] = useState<any[]>([]);
   const [adminUsers, setAdminUsers] = useState<Record<string, string>>({});
-  const [newMembersCount, setNewMembersCount] = useState(0);
   const [revenue, setRevenue] = useState(0);
+  const [revenueBreakdown, setRevenueBreakdown] = useState<{ [key: string]: { amount: number, count: number } }>({
+    'New Members': { amount: 0, count: 0 },
+    'Renewals': { amount: 0, count: 0 }
+  });
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   useEffect(() => {
     checkAuth();
     fetchAdminUsers();
     updateExpiredMemberships().then(() => {
       fetchDashboardData();
-      fetchRecentActivity();
       fetchExpiringMemberships();
       calculateRevenue();
-      fetchNewMembersCount();
     });
   }, []);
 
@@ -145,22 +147,6 @@ export default function Dashboard() {
     }
   };
 
-  const fetchRecentActivity = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('activity_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      
-      setRecentActivity(data || []);
-    } catch (error) {
-      console.error('Error fetching recent activity:', error);
-    }
-  };
-
   const fetchExpiringMemberships = async () => {
     try {
       const now = new Date();
@@ -184,55 +170,43 @@ export default function Dashboard() {
     }
   };
 
-  const fetchNewMembersCount = async () => {
-    try {
-      const now = new Date();
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(now.getDate() - 7);
-      
-      const { count, error } = await supabase
-        .from('members')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', sevenDaysAgo.toISOString());
-      
-      if (error) throw error;
-      
-      setNewMembersCount(count || 0);
-    } catch (error) {
-      console.error('Error fetching new members count:', error);
-    }
-  };
-
   const calculateRevenue = async () => {
     try {
       const now = new Date();
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       
       const { data, error } = await supabase
-        .from('members')
-        .select('package')
-        .gte('subscription_start_date', firstDayOfMonth.toISOString());
+        .from('payment_history')
+        .select(`
+          amount,
+          payment_type,
+          member_id
+        `)
+        .gte('payment_date', firstDayOfMonth.toISOString())
+        .lte('payment_date', now.toISOString());
       
       if (error) throw error;
       
       let totalRevenue = 0;
+      const breakdown: { [key: string]: { amount: number, count: number } } = {
+        'New Members': { amount: 0, count: 0 },
+        'Renewals': { amount: 0, count: 0 }
+      };
+
       if (data) {
-        data.forEach(member => {
-          switch(member.package) {
-            case 'Diamond':
-              totalRevenue += 2500;
-              break;
-            case 'Gold':
-              totalRevenue += 1500;
-              break;
-            default:
-              totalRevenue += 1000;
-              break;
-          }
+        data.forEach(payment => {
+          const amount = payment.amount || 0;
+          totalRevenue += amount;
+          
+          // Categorize the payment
+          const category = payment.payment_type === 'new_member' ? 'New Members' : 'Renewals';
+          breakdown[category].amount += amount;
+          breakdown[category].count += 1;
         });
       }
       
       setRevenue(totalRevenue);
+      setRevenueBreakdown(breakdown);
     } catch (error) {
       console.error('Error calculating revenue:', error);
     }
@@ -282,6 +256,8 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem('adminEmail');
     localStorage.removeItem('adminName');
+    localStorage.removeItem('adminLoginTime');
+    localStorage.removeItem('isAdminLoggedIn');
     navigate('/admin/login');
     toast.success('Logged out successfully');
   };
@@ -324,6 +300,13 @@ export default function Dashboard() {
             
             <div className="flex items-center space-x-4">
               <button
+                onClick={() => setIsProfileModalOpen(true)}
+                className="btn-secondary flex items-center gap-2 text-sm py-2"
+              >
+                <Settings className="h-4 w-4" />
+                Edit Profile
+              </button>
+              <button
                 onClick={handleLogout}
                 className="btn-secondary flex items-center gap-2 text-sm py-2"
               >
@@ -341,7 +324,7 @@ export default function Dashboard() {
           <ProfileSettings />
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <div className="bg-white rounded-xl shadow-sm p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -353,6 +336,30 @@ export default function Dashboard() {
                       memberCount
                     )}
                   </h3>
+                  {!isLoading && (
+                    <div className="mt-3 space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                          Active
+                        </span>
+                        <span className="font-medium">{activeCount} members</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+                          Expired
+                        </span>
+                        <span className="font-medium">{expiredCount} members</span>
+                      </div>
+                      <div className="mt-2 w-full bg-gray-200 rounded-full h-1.5">
+                        <div 
+                          className="bg-green-500 h-1.5 rounded-full" 
+                          style={{ 
+                            width: `${(activeCount / (memberCount || 1)) * 100}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div className="bg-blue-50 p-3 rounded-full">
                   <Users className="h-5 w-5 text-blue-500" />
@@ -371,9 +378,30 @@ export default function Dashboard() {
                       `₹${revenue.toLocaleString()}`
                     )}
                   </h3>
+                  {!isLoading && (
+                    <div className="mt-3 space-y-1">
+                      {Object.entries(revenueBreakdown).map(([category, data]) => (
+                        data.amount > 0 && (
+                          <div key={category} className="flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className={`${
+                                category === 'New Members' 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-blue-100 text-blue-800'
+                              } px-2 py-0.5 rounded-full`}>
+                                {category}
+                              </span>
+                              <span className="text-gray-500">({data.count})</span>
+                            </div>
+                            <span className="font-medium">₹{data.amount.toLocaleString()}</span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="bg-green-50 p-3 rounded-full">
-                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <CreditCard className="h-5 w-5 text-green-500" />
                 </div>
               </div>
             </div>
@@ -392,24 +420,6 @@ export default function Dashboard() {
                 </div>
                 <div className="bg-orange-50 p-3 rounded-full">
                   <Clock className="h-5 w-5 text-orange-500" />
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm">New Members (7 days)</p>
-                  <h3 className="text-3xl font-bold mt-2">
-                    {isLoading ? (
-                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
-                    ) : (
-                      newMembersCount
-                    )}
-                  </h3>
-                </div>
-                <div className="bg-purple-50 p-3 rounded-full">
-                  <PlusCircle className="h-5 w-5 text-purple-500" />
                 </div>
               </div>
             </div>
@@ -513,6 +523,11 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </div>
   );
 }
