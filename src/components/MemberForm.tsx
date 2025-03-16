@@ -176,8 +176,8 @@ export default function MemberForm() {
             payment_method: formData.payment_method,
             package: formData.package,
             notes: formData.notes || null,
-            added_by: adminEmail
-            // Payment date will be handled by the default value in the database
+            added_by: adminEmail,
+            payment_date: now
           });
 
         if (paymentError) {

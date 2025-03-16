@@ -178,8 +178,8 @@ export default function Dashboard() {
         .from('payment_history')
         .select(`
           amount,
-          payment_type,
-          member_id
+          member_id,
+          payment_date
         `)
         .gte('payment_date', firstDayOfMonth.toISOString())
         .lte('payment_date', now.toISOString());
@@ -193,12 +193,31 @@ export default function Dashboard() {
       };
 
       if (data) {
+        // Get all members to check if payment is for new member or renewal
+        const { data: membersData, error: membersError } = await supabase
+          .from('members')
+          .select('id, join_date');
+          
+        if (membersError) throw membersError;
+        
+        const membersMap = new Map(membersData.map(m => [m.id, m.join_date]));
+        
         data.forEach(payment => {
           const amount = payment.amount || 0;
           totalRevenue += amount;
           
-          // Categorize the payment
-          const category = payment.payment_type === 'new_member' ? 'New Members' : 'Renewals';
+          // Check if this payment was made on the member's join date
+          const memberJoinDate = membersMap.get(payment.member_id);
+          const paymentDate = new Date(payment.payment_date);
+          const joinDate = memberJoinDate ? new Date(memberJoinDate) : null;
+          
+          // If payment date matches join date (same day), it's a new member payment
+          const isNewMember = joinDate && 
+            paymentDate.getFullYear() === joinDate.getFullYear() &&
+            paymentDate.getMonth() === joinDate.getMonth() &&
+            paymentDate.getDate() === joinDate.getDate();
+          
+          const category = isNewMember ? 'New Members' : 'Renewals';
           breakdown[category].amount += amount;
           breakdown[category].count += 1;
         });
