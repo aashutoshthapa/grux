@@ -201,7 +201,7 @@ export default function Reports() {
       pdf.addImage(imgData, 'PNG', 10, 25, imgWidth, imgHeight);
       
       // Save the PDF
-      pdf.save(`GymStriveHub_${reportTitle.replace(/\s/g, '_')}_${currentDate.replace(/\//g, '-')}.pdf`);
+      pdf.save(`G-Rux_Fitness_${reportTitle.replace(/\s/g, '_')}_${currentDate.replace(/\//g, '-')}.pdf`);
       
       toast.success('Report exported successfully!');
     } catch (error) {

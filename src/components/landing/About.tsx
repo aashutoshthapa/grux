@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -75,7 +74,7 @@ export default function About() {
             </h2>
             
             <p className="text-gym-gray text-lg">
-              GymStriveHub was founded with a simple mission: to create a fitness center that truly puts 
+              G-Rux Fitness was founded with a simple mission: to create a fitness center that truly puts 
               members' health and wellness first. Our founders, passionate fitness enthusiasts themselves, 
               recognized the need for a gym that combines state-of-the-art equipment with personalized 
               attention and a supportive community.

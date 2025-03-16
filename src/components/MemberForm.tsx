@@ -199,30 +199,6 @@ export default function MemberForm() {
           console.error('Log insertion error:', logError);
           // Continue even if log insertion fails
         }
-
-        // Send welcome email
-        try {
-          const response = await fetch(`${window.location.origin}/api/send-welcome-email`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: formData.email,
-              name: formData.name,
-              package: formData.package,
-              amount: formData.amount,
-              endDate: subscriptionEndDate
-            }),
-          });
-          
-          if (!response.ok) {
-            console.error('Email sending failed');
-          }
-        } catch (emailError) {
-          console.error('Error sending email:', emailError);
-          // Continue even if email sending fails
-        }
       }
 
       toast.success("Member added successfully!");

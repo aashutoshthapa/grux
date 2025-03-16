@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -7,9 +6,9 @@ const testimonials = [
   {
     id: 1,
     name: 'Sarah Johnson',
-    role: 'Member since 2025',
-    image: 'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?q=80&w=1974',
-    quote: "Joining GymStriveHub was the best decision I made for my health. The trainers are incredibly knowledgeable and supportive. I've lost 15kg and gained so much confidence!",
+    role: 'Member since 2023',
+    image: '/testimonials/1.jpg',
+    quote: "Joining G-Rux Fitness was the best decision I made for my health. The trainers are incredibly knowledgeable and supportive. I've lost 15kg and gained so much confidence!",
     rating: 5
   },
   {
@@ -25,7 +24,7 @@ const testimonials = [
     name: 'Priya Sharma',
     role: 'Diamond Member',
     image: 'https://images.unsplash.com/photo-1664575602554-2087b04935a5?q=80&w=1974',
-    quote: 'As someone who was intimidated by gyms, GymStriveHub created such a welcoming environment. The Diamond package is worth every rupee for the personalized attention.',
+    quote: 'As someone who was intimidated by gyms, G-Rux Fitness created such a welcoming environment. The Diamond package is worth every rupee for the personalized attention.',
     rating: 4
   },
   {
@@ -96,7 +95,7 @@ export default function Testimonials() {
             Hear From Our Members
           </h2>
           <p className="text-gym-gray text-lg">
-            Real people, real results. Discover how GymStriveHub has transformed the lives of our community.
+            Real people, real results. Discover how G-Rux Fitness has transformed the lives of our community.
           </p>
         </div>
 

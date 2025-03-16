@@ -224,32 +224,6 @@ export default function RenewMembership() {
         // Continue even if log insertion fails
       }
 
-      // Send confirmation email (will be implemented later)
-      try {
-        const response = await fetch(`${window.location.origin}/api/send-renewal-email`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: member.email,
-            name: member.name,
-            package: formData.package,
-            amount: formData.amount,
-            discount: formData.discount,
-            startDate: startDate,
-            endDate: endDate
-          }),
-        });
-        
-        if (!response.ok) {
-          console.error('Email sending failed');
-        }
-      } catch (emailError) {
-        console.error('Error sending email:', emailError);
-        // Continue even if email sending fails
-      }
-
       toast.success("Membership renewed successfully!");
       navigate(`/admin/members/${member.id}`);
     } catch (error) {
