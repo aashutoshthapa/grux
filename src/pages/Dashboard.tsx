@@ -1,0 +1,524 @@
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart3, Users, User, LogOut, Clock, Activity, FileText, DollarSign, PlusCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+export default function Dashboard() {
+  const navigate = useNavigate();
+  const [memberCount, setMemberCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+  const [expiredCount, setExpiredCount] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [adminName, setAdminName] = useState('Admin');
+  const [adminEmail, setAdminEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [expiringMemberships, setExpiringMemberships] = useState<any[]>([]);
+  const [adminUsers, setAdminUsers] = useState<Record<string, string>>({});
+  const [newMembersCount, setNewMembersCount] = useState(0);
+  const [revenue, setRevenue] = useState(0);
+
+  useEffect(() => {
+    checkAuth();
+    fetchAdminUsers();
+    updateExpiredMemberships().then(() => {
+      fetchDashboardData();
+      fetchRecentActivity();
+      fetchExpiringMemberships();
+      calculateRevenue();
+      fetchNewMembersCount();
+    });
+  }, []);
+
+  const checkAuth = () => {
+    const adminEmail = localStorage.getItem('adminEmail');
+    const adminName = localStorage.getItem('adminName');
+    
+    if (!adminEmail) {
+      navigate('/admin/login');
+      return;
+    }
+
+    setAdminEmail(adminEmail);
+    if (adminName) {
+      setAdminName(adminName);
+    }
+  };
+
+  const fetchAdminUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('admin_users')
+        .select('email, name');
+      
+      if (error) throw error;
+      
+      const adminMap: Record<string, string> = {};
+      if (data) {
+        data.forEach(admin => {
+          adminMap[admin.email] = admin.name;
+        });
+      }
+      
+      setAdminUsers(adminMap);
+    } catch (error) {
+      console.error('Error fetching admin users:', error);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      const { count: total, error: countError } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true });
+      
+      if (countError) throw countError;
+      
+      const { count: active, error: activeError } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Active');
+      
+      if (activeError) throw activeError;
+      
+      const { count: expired, error: expiredError } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Expired');
+      
+      if (expiredError) throw expiredError;
+      
+      setMemberCount(total || 0);
+      setActiveCount(active || 0);
+      setExpiredCount(expired || 0);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateExpiredMemberships = async () => {
+    try {
+      const now = new Date().toISOString();
+      
+      // Find all members with Active status but expired subscription
+      const { data, error } = await supabase
+        .from('members')
+        .select('id')
+        .eq('status', 'Active')
+        .lt('subscription_end_date', now);
+        
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        // Extract the IDs of expired members
+        const expiredMemberIds = data.map(member => member.id);
+        
+        // Update their status to Expired
+        const { error: updateError } = await supabase
+          .from('members')
+          .update({ status: 'Expired' })
+          .in('id', expiredMemberIds);
+        
+        if (updateError) throw updateError;
+        
+        // Log this activity
+        for (const memberId of expiredMemberIds) {
+          await supabase
+            .from('activity_logs')
+            .insert({
+              member_id: memberId,
+              action_type: 'status_change',
+              action_details: 'Membership expired automatically',
+              performed_by: null
+            });
+        }
+        
+        console.log(`Updated ${expiredMemberIds.length} members to Expired status`);
+      }
+    } catch (error) {
+      console.error('Error updating expired memberships:', error);
+    }
+  };
+
+  const fetchRecentActivity = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      setRecentActivity(data || []);
+    } catch (error) {
+      console.error('Error fetching recent activity:', error);
+    }
+  };
+
+  const fetchExpiringMemberships = async () => {
+    try {
+      const now = new Date();
+      const sevenDaysLater = new Date();
+      sevenDaysLater.setDate(now.getDate() + 7);
+      
+      const { data, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('status', 'Active')
+        .lt('subscription_end_date', sevenDaysLater.toISOString())
+        .gte('subscription_end_date', now.toISOString())
+        .order('subscription_end_date', { ascending: true })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      setExpiringMemberships(data || []);
+    } catch (error) {
+      console.error('Error fetching expiring memberships:', error);
+    }
+  };
+
+  const fetchNewMembersCount = async () => {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(now.getDate() - 7);
+      
+      const { count, error } = await supabase
+        .from('members')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', sevenDaysAgo.toISOString());
+      
+      if (error) throw error;
+      
+      setNewMembersCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching new members count:', error);
+    }
+  };
+
+  const calculateRevenue = async () => {
+    try {
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const { data, error } = await supabase
+        .from('members')
+        .select('package')
+        .gte('subscription_start_date', firstDayOfMonth.toISOString());
+      
+      if (error) throw error;
+      
+      let totalRevenue = 0;
+      if (data) {
+        data.forEach(member => {
+          switch(member.package) {
+            case 'Diamond':
+              totalRevenue += 2500;
+              break;
+            case 'Gold':
+              totalRevenue += 1500;
+              break;
+            default:
+              totalRevenue += 1000;
+              break;
+          }
+        });
+      }
+      
+      setRevenue(totalRevenue);
+    } catch (error) {
+      console.error('Error calculating revenue:', error);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const getActionTypeColor = (actionType: string) => {
+    switch (actionType) {
+      case 'add':
+        return 'bg-green-100 text-green-800';
+      case 'renewal':
+        return 'bg-blue-100 text-blue-800';
+      case 'delete':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAdminName = (email: string | null) => {
+    if (!email) return 'System';
+    return adminUsers[email] || email;
+  };
+
+  const calculateDaysLeft = (endDateStr: string | null) => {
+    if (!endDateStr) return 0;
+    
+    const endDate = new Date(endDateStr);
+    const today = new Date();
+    const diffTime = endDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays > 0 ? diffDays : 0;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminEmail');
+    localStorage.removeItem('adminName');
+    navigate('/admin/login');
+    toast.success('Logged out successfully');
+  };
+
+  const getPackageStyle = (packageName: string) => {
+    switch(packageName) {
+      case 'Diamond':
+        return 'bg-purple-100 text-purple-800';
+      case 'Gold':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
+    
+    if (diffHours < 1) {
+      return 'just now';
+    } else if (diffHours < 24) {
+      return `${diffHours} hours ago`;
+    } else {
+      const diffDays = Math.floor(diffHours / 24);
+      return `${diffDays} days ago`;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <img src="/logo.jpg" alt="G-Rux Fitness" className="h-10 w-auto" />
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <button onClick={handleLogout} className="flex items-center gap-2 font-medium text-sm">
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="bg-gym-blue text-white rounded-xl p-6 mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Welcome to Admin Dashboard</h1>
+              <p className="text-blue-100">Manage your gym members, subscriptions, and view reports all in one place.</p>
+            </div>
+            <Link
+              to="/admin/members/add"
+              className="bg-white text-gym-blue px-4 py-2 rounded-lg flex items-center gap-2 font-medium hover:bg-blue-50 transition-colors"
+            >
+              <User className="h-4 w-4" />
+              Add New Member
+            </Link>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Total Members</p>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isLoading ? (
+                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                  ) : (
+                    memberCount
+                  )}
+                </h3>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-full">
+                <Users className="h-5 w-5 text-blue-500" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Monthly Revenue</p>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isLoading ? (
+                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                  ) : (
+                    `₹${revenue.toLocaleString()}`
+                  )}
+                </h3>
+              </div>
+              <div className="bg-green-50 p-3 rounded-full">
+                <DollarSign className="h-5 w-5 text-green-500" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">Expiring Soon</p>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isLoading ? (
+                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                  ) : (
+                    expiringMemberships.length
+                  )}
+                </h3>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-full">
+                <Clock className="h-5 w-5 text-orange-500" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-gray-500 text-sm">New Members (7 days)</p>
+                <h3 className="text-3xl font-bold mt-2">
+                  {isLoading ? (
+                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                  ) : (
+                    newMembersCount
+                  )}
+                </h3>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-full">
+                <PlusCircle className="h-5 w-5 text-purple-500" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="font-semibold">Expiring Soon</h2>
+            </div>
+            <div className="p-6">
+              {expiringMemberships.length > 0 ? (
+                <div className="space-y-4">
+                  {expiringMemberships.map((member) => (
+                    <div key={member.id} className="border-b border-gray-50 pb-4 last:border-b-0 last:pb-0">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 p-2 rounded-full bg-orange-50 text-orange-500">
+                          <Clock className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <Link to={`/admin/members/${member.id}`} className="text-sm font-medium hover:text-gym-blue">
+                            {member.name}
+                          </Link>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${getPackageStyle(member.package)}`}>
+                              {member.package}
+                            </span>
+                            <span className={`text-xs ${
+                              calculateDaysLeft(member.subscription_end_date) <= 3 ? 'text-red-600' :
+                              calculateDaysLeft(member.subscription_end_date) <= 7 ? 'text-orange-600' :
+                              'text-green-600'
+                            }`}>
+                              {calculateDaysLeft(member.subscription_end_date)} days left
+                            </span>
+                          </div>
+                          <div className="mt-2">
+                            <Link to={`/admin/members/renew/${member.id}`} className="text-xs text-gym-blue hover:underline">
+                              Renew membership →
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 text-sm text-center py-6">No memberships expiring soon.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Link
+            to="/admin/members/add"
+            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+          >
+            <div className="bg-blue-50 p-3 rounded-full">
+              <User className="h-5 w-5 text-blue-500" />
+            </div>
+            <div>
+              <h3 className="font-medium">Add Member</h3>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/members"
+            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+          >
+            <div className="bg-indigo-50 p-3 rounded-full">
+              <Users className="h-5 w-5 text-indigo-500" />
+            </div>
+            <div>
+              <h3 className="font-medium">All Members</h3>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/reports"
+            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+          >
+            <div className="bg-yellow-50 p-3 rounded-full">
+              <BarChart3 className="h-5 w-5 text-yellow-500" />
+            </div>
+            <div>
+              <h3 className="font-medium">Reports</h3>
+            </div>
+          </Link>
+
+          <Link
+            to="/admin/contacts"
+            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+          >
+            <div className="bg-green-50 p-3 rounded-full">
+              <FileText className="h-5 w-5 text-green-500" />
+            </div>
+            <div>
+              <h3 className="font-medium">Contact Forms</h3>
+            </div>
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
+}
+
