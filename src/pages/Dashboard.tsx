@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3, Users, User, LogOut, Clock, Activity, FileText, DollarSign, PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import ProfileSettings from '@/components/admin/ProfileSettings';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -313,16 +314,20 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gym-lightGray">
+      <header className="bg-white shadow-subtle">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16 items-center">
             <div className="flex items-center">
               <img src="/logo.jpg" alt="G-Rux Fitness" className="h-10 w-auto" />
             </div>
             
-            <div className="flex items-center gap-4">
-              <button onClick={handleLogout} className="flex items-center gap-2 font-medium text-sm">
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={handleLogout}
+                className="btn-secondary flex items-center gap-2 text-sm py-2"
+              >
+                <LogOut className="h-4 w-4" />
                 Logout
               </button>
             </div>
@@ -330,192 +335,182 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="bg-gym-blue text-white rounded-xl p-6 mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">Welcome to Admin Dashboard</h1>
-              <p className="text-blue-100">Manage your gym members, subscriptions, and view reports all in one place.</p>
-            </div>
-            <Link
-              to="/admin/members/add"
-              className="bg-white text-gym-blue px-4 py-2 rounded-lg flex items-center gap-2 font-medium hover:bg-blue-50 transition-colors"
-            >
-              <User className="h-4 w-4" />
-              Add New Member
-            </Link>
-          </div>
-        </div>
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 gap-8">
+          {/* Profile Settings Section */}
+          <ProfileSettings />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Total Members</p>
-                <h3 className="text-3xl font-bold mt-2">
-                  {isLoading ? (
-                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    memberCount
-                  )}
-                </h3>
-              </div>
-              <div className="bg-blue-50 p-3 rounded-full">
-                <Users className="h-5 w-5 text-blue-500" />
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Total Members</p>
+                  <h3 className="text-3xl font-bold mt-2">
+                    {isLoading ? (
+                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                    ) : (
+                      memberCount
+                    )}
+                  </h3>
+                </div>
+                <div className="bg-blue-50 p-3 rounded-full">
+                  <Users className="h-5 w-5 text-blue-500" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Monthly Revenue</p>
-                <h3 className="text-3xl font-bold mt-2">
-                  {isLoading ? (
-                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    `₹${revenue.toLocaleString()}`
-                  )}
-                </h3>
-              </div>
-              <div className="bg-green-50 p-3 rounded-full">
-                <DollarSign className="h-5 w-5 text-green-500" />
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Monthly Revenue</p>
+                  <h3 className="text-3xl font-bold mt-2">
+                    {isLoading ? (
+                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                    ) : (
+                      `₹${revenue.toLocaleString()}`
+                    )}
+                  </h3>
+                </div>
+                <div className="bg-green-50 p-3 rounded-full">
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">Expiring Soon</p>
-                <h3 className="text-3xl font-bold mt-2">
-                  {isLoading ? (
-                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    expiringMemberships.length
-                  )}
-                </h3>
-              </div>
-              <div className="bg-orange-50 p-3 rounded-full">
-                <Clock className="h-5 w-5 text-orange-500" />
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">Expiring Soon</p>
+                  <h3 className="text-3xl font-bold mt-2">
+                    {isLoading ? (
+                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                    ) : (
+                      expiringMemberships.length
+                    )}
+                  </h3>
+                </div>
+                <div className="bg-orange-50 p-3 rounded-full">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-gray-500 text-sm">New Members (7 days)</p>
-                <h3 className="text-3xl font-bold mt-2">
-                  {isLoading ? (
-                    <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
-                  ) : (
-                    newMembersCount
-                  )}
-                </h3>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-full">
-                <PlusCircle className="h-5 w-5 text-purple-500" />
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-gray-500 text-sm">New Members (7 days)</p>
+                  <h3 className="text-3xl font-bold mt-2">
+                    {isLoading ? (
+                      <div className="h-9 w-16 bg-gray-200 animate-pulse rounded"></div>
+                    ) : (
+                      newMembersCount
+                    )}
+                  </h3>
+                </div>
+                <div className="bg-purple-50 p-3 rounded-full">
+                  <PlusCircle className="h-5 w-5 text-purple-500" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="font-semibold">Expiring Soon</h2>
-            </div>
-            <div className="p-6">
-              {expiringMemberships.length > 0 ? (
-                <div className="space-y-4">
-                  {expiringMemberships.map((member) => (
-                    <div key={member.id} className="border-b border-gray-50 pb-4 last:border-b-0 last:pb-0">
-                      <div className="flex items-start gap-3">
-                        <div className="flex-shrink-0 p-2 rounded-full bg-orange-50 text-orange-500">
-                          <Clock className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <Link to={`/admin/members/${member.id}`} className="text-sm font-medium hover:text-gym-blue">
-                            {member.name}
-                          </Link>
-                          <div className="flex flex-wrap gap-2 mt-1">
-                            <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${getPackageStyle(member.package)}`}>
-                              {member.package}
-                            </span>
-                            <span className={`text-xs ${
-                              calculateDaysLeft(member.subscription_end_date) <= 3 ? 'text-red-600' :
-                              calculateDaysLeft(member.subscription_end_date) <= 7 ? 'text-orange-600' :
-                              'text-green-600'
-                            }`}>
-                              {calculateDaysLeft(member.subscription_end_date)} days left
-                            </span>
+          <div className="grid grid-cols-1 gap-6 mb-8">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-gray-100">
+                <h2 className="font-semibold">Expiring Soon</h2>
+              </div>
+              <div className="p-6">
+                {expiringMemberships.length > 0 ? (
+                  <div className="space-y-4">
+                    {expiringMemberships.map((member) => (
+                      <div key={member.id} className="border-b border-gray-50 pb-4 last:border-b-0 last:pb-0">
+                        <div className="flex items-start gap-3">
+                          <div className="flex-shrink-0 p-2 rounded-full bg-orange-50 text-orange-500">
+                            <Clock className="h-4 w-4" />
                           </div>
-                          <div className="mt-2">
-                            <Link to={`/admin/members/renew/${member.id}`} className="text-xs text-gym-blue hover:underline">
-                              Renew membership →
+                          <div>
+                            <Link to={`/admin/members/${member.id}`} className="text-sm font-medium hover:text-gym-blue">
+                              {member.name}
                             </Link>
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${getPackageStyle(member.package)}`}>
+                                {member.package}
+                              </span>
+                              <span className={`text-xs ${
+                                calculateDaysLeft(member.subscription_end_date) <= 3 ? 'text-red-600' :
+                                calculateDaysLeft(member.subscription_end_date) <= 7 ? 'text-orange-600' :
+                                'text-green-600'
+                              }`}>
+                                {calculateDaysLeft(member.subscription_end_date)} days left
+                              </span>
+                            </div>
+                            <div className="mt-2">
+                              <Link to={`/admin/members/renew/${member.id}`} className="text-xs text-gym-blue hover:underline">
+                                Renew membership →
+                              </Link>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 text-sm text-center py-6">No memberships expiring soon.</p>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm text-center py-6">No memberships expiring soon.</p>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link
-            to="/admin/members/add"
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
-          >
-            <div className="bg-blue-50 p-3 rounded-full">
-              <User className="h-5 w-5 text-blue-500" />
-            </div>
-            <div>
-              <h3 className="font-medium">Add Member</h3>
-            </div>
-          </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Link
+              to="/admin/members/add"
+              className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+            >
+              <div className="bg-blue-50 p-3 rounded-full">
+                <User className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Add Member</h3>
+              </div>
+            </Link>
 
-          <Link
-            to="/admin/members"
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
-          >
-            <div className="bg-indigo-50 p-3 rounded-full">
-              <Users className="h-5 w-5 text-indigo-500" />
-            </div>
-            <div>
-              <h3 className="font-medium">All Members</h3>
-            </div>
-          </Link>
+            <Link
+              to="/admin/members"
+              className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+            >
+              <div className="bg-indigo-50 p-3 rounded-full">
+                <Users className="h-5 w-5 text-indigo-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">All Members</h3>
+              </div>
+            </Link>
 
-          <Link
-            to="/admin/reports"
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
-          >
-            <div className="bg-yellow-50 p-3 rounded-full">
-              <BarChart3 className="h-5 w-5 text-yellow-500" />
-            </div>
-            <div>
-              <h3 className="font-medium">Reports</h3>
-            </div>
-          </Link>
+            <Link
+              to="/admin/reports"
+              className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+            >
+              <div className="bg-yellow-50 p-3 rounded-full">
+                <BarChart3 className="h-5 w-5 text-yellow-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Reports</h3>
+              </div>
+            </Link>
 
-          <Link
-            to="/admin/contacts"
-            className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
-          >
-            <div className="bg-green-50 p-3 rounded-full">
-              <FileText className="h-5 w-5 text-green-500" />
-            </div>
-            <div>
-              <h3 className="font-medium">Contact Forms</h3>
-            </div>
-          </Link>
+            <Link
+              to="/admin/contacts"
+              className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 hover:shadow-md transition-shadow"
+            >
+              <div className="bg-green-50 p-3 rounded-full">
+                <FileText className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <h3 className="font-medium">Contact Forms</h3>
+              </div>
+            </Link>
+          </div>
         </div>
       </main>
     </div>

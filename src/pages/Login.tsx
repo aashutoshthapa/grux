@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import CryptoJS from 'crypto-js';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -35,9 +34,6 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      // Hash the password for secure comparison
-      const hashedPassword = CryptoJS.SHA256(password).toString();
-      
       // Get admin with matching email
       const { data, error } = await supabase
         .from('admin_users')
@@ -54,8 +50,8 @@ export default function Login() {
         throw new Error('Invalid email or password');
       }
 
-      // Verify the hashed password
-      if (data.password !== hashedPassword) {
+      // Simple password comparison
+      if (data.password !== password) {
         throw new Error('Invalid email or password');
       }
 
